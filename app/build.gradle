@@ -1,0 +1,70 @@
+plugins {
+    id 'java'
+}
+
+group 'com.example'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral() // Ensure you're using Maven Central
+}
+
+// Declare the dependencies for your project
+dependencies {
+    // Extent Reports for reporting
+    implementation 'com.aventstack:extentreports:5.0.9'
+
+    // Apache Commons IO for file handling
+    implementation 'commons-io:commons-io:2.11.0'
+
+    // Selenium Java
+    implementation group: 'org.seleniumhq.selenium', name: 'selenium-java', version: '4.23.0'
+
+    // Selenium Server (standalone server and grid functionality)
+    implementation group: 'org.seleniumhq.selenium', name: 'selenium-server', version: '3.141.59'
+
+    // Selenium API and Support (specific APIs)
+    implementation group: 'org.seleniumhq.selenium', name: 'selenium-api', version: '4.23.0'
+    implementation group: 'org.seleniumhq.selenium', name: 'selenium-support', version: '4.23.0'
+
+    // Datafaker for generating fake data
+    implementation group: 'net.datafaker', name: 'datafaker', version: '2.0.1'
+
+    // TestNG for testing
+    implementation group: 'org.testng', name: 'testng', version: '7.8.0'
+
+    // Apache Commons Lang3 for extra functionalities
+    implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.13.0'
+
+    // AssertJ for fluent assertions
+    implementation group: 'org.assertj', name: 'assertj-core', version: '3.24.2'
+
+    // WebDriverManager for managing browser drivers
+    implementation group: 'io.github.bonigarcia', name: 'webdrivermanager', version: '5.9.2'
+
+    compileOnly group: 'org.projectlombok', name: 'lombok', version: '1.18.34'
+    annotationProcessor 'org.projectlombok:lombok:1.18.28'
+}
+
+// Configure test tasks to use TestNG
+test {
+    useTestNG() {
+        suites 'src/test/resources/testng.xml'
+    }
+
+    // Configure the test reports to ensure HTML and XML reports are generated
+    reports {
+        html.required.set(true)    // Enable HTML report generation
+        junitXml.required.set(true) // Enable JUnit XML report generation
+    }
+
+    // Enable test logging
+    testLogging {
+        events "passed", "skipped", "failed"
+        showExceptions true
+        exceptionFormat "full"
+        showCauses true
+        showStackTraces true
+    }
+}
+

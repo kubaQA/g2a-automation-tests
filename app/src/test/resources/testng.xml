@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="G2A Product Price Test Suite">
+    <test name="Product Price Test">
+        <parameter name="productName" value="Cyberpunk 2077" />
+        <classes>
+            <class name="test.g2a.G2AautomationTest" />
+        </classes>
+    </test>
+</suite>
