@@ -39,6 +39,9 @@ dependencies {
     // AssertJ for fluent assertions
     implementation group: 'org.assertj', name: 'assertj-core', version: '3.24.2'
 
+    implementation group: 'com.aventstack', name: 'extentreports', version: '5.1.2'
+
+
     // WebDriverManager for managing browser drivers
     implementation group: 'io.github.bonigarcia', name: 'webdrivermanager', version: '5.9.2'
 

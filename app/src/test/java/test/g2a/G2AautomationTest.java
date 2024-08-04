@@ -1,111 +1,93 @@
 package test.g2a;
 
-import org.openqa.selenium.By;
+import com.aventstack.extentreports.Status;
 import org.openqa.selenium.WebElement;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Optional;
 import org.testng.annotations.Parameters;
 import org.testng.annotations.Test;
 import test.g2a.config.TestBase;
+import test.g2a.pageObjects.G2APage;
+import test.g2a.utils.WaitUtils;
 
 import java.time.Duration;
 import java.util.List;
 
 public class G2AautomationTest extends TestBase {
 
+    private G2APage g2APage;
+
     @BeforeClass
     public void initOperations() {
-        try {
-            WebElement cookiesButton = driver.findElement(By.xpath("//button[contains(text(), 'Accept all')]"));
-            cookiesButton.click();
-        } catch (Exception e) {
-            System.out.println("Cookies button not found, continuing...");
-        }
+        g2APage = new G2APage(driver);
+        waitUtils = new WaitUtils(driver);
+
+        // Accept cookies
+        g2APage.acceptCookies();
     }
 
     @Parameters({"productName"})
     @Test
-    public void testG2A() {
-        // Search for the product
-        WebElement searchBox = driver.findElement(By.xpath("//input[@placeholder='What are you looking for?']"));
+    public void testG2A(@Optional("Cyberpunk 2077 & Phantom Liberty Bundle (PC) - Steam Account - GLOBAL") String productName) {
+        extentTest = extentReports.createTest("G2A Price Verification Test - " + productName);
 
-        WebElement searchButton = driver.findElement(By.cssSelector("div[class*='IconContainer'] svg[class*='search_icon']"));
-        searchBox.sendKeys("Cyberpunk 2077 & Phantom Liberty Bundle (PC) - Steam Account - GLOBAL");
-        // Wait for search results to load and select the first result
+        try {
+            // Search for the product
+            extentTest.log(Status.INFO, "Searching for product: " + productName);
+            g2APage.searchForProduct(productName);
 
-        List<WebElement> searchResults = driver.findElements(By.xpath("//ul[contains(@class, 'indexes__ItemsListContainer'])/li"));
-        Assert.assertFalse(searchResults.isEmpty(), "Search results are empty!");
-        searchButton.click();
+            // Wait for search results to load and select the first result
+            List<WebElement> searchResults = g2APage.getSearchResults();
+            Assert.assertFalse(searchResults.isEmpty(), "Search results are empty!");
+            extentTest.log(Status.PASS, "Search results found.");
 
-        // Click on the first product
-        WebElement firstProduct = driver.findElement(By.xpath("//ul[contains(@class, 'StyledListMobile')]/li[1]"));
-        WebElement priceElement = firstProduct.findElement(By.xpath("//div/span[@data-locator = 'zth-price']"));
+            // Click on the first product
+            extentTest.log(Status.INFO, "Clicking on the first product.");
+            WebElement firstProduct = g2APage.getFirstProduct();
+            String price = g2APage.getPriceElement().getText();
+            String currency = g2APage.getCurrencyElement().getText();
+            extentTest.log(Status.INFO, "Product Price: " + price + " " + currency);
 
-        String price = priceElement.getText();
-        String currency = priceElement.findElement(By.xpath("/span")).getText();
+            g2APage.clickFirstProduct();
 
-        firstProduct.click();
+            String priceOnProductPageWithoutDiscount = g2APage.getPriceElementOnProductPageWithoutDiscount().getText();
+            String currencyOnProductPageWithoutDiscount = g2APage.getCurrencyElementOnProductPageWithoutDiscount().getText();
+            extentTest.log(Status.INFO, "Price on product page: " + priceOnProductPageWithoutDiscount + " " + currencyOnProductPageWithoutDiscount);
 
-        WebElement priceElementOnProductPageWithoutDiscount = firstProduct.findElement(By.xpath("//input[@type='radio' and @name='priceVariant' and @checked]/following-sibling::span[contains(@class, 'Radiostyles__Description')]/span[@data-locator = 'zth-price']"));
-        String priceOnProductPageWithoutDiscount = priceElementOnProductPageWithoutDiscount.getText();
-        WebElement currencyElementOnProductPageWithoutDiscount = priceElementOnProductPageWithoutDiscount.findElement(By.xpath("/span"));
-        String currencyOnProductPageWithoutDiscount = currencyElementOnProductPageWithoutDiscount.getText();
+            Assert.assertEquals(price, priceOnProductPageWithoutDiscount, "Prices do not match on product page");
+            Assert.assertEquals(currency, currencyOnProductPageWithoutDiscount, "Currencies do not match on product page");
+            extentTest.log(Status.PASS, "Price and currency match on product page.");
 
-        Assert.assertEquals(price, priceOnProductPageWithoutDiscount);
-        Assert.assertEquals(currency, currencyOnProductPageWithoutDiscount);
+            // Add to cart
+            extentTest.log(Status.INFO, "Adding product to cart.");
+            g2APage.addToCart();
 
-        WebElement addToCartButton = firstProduct.findElement(By.xpath("//div[contains(@class, 'PaymentsRadiostyles')]/following-sibling::button[contains(text(), 'Add to cart')]"));
+            // Verify cart contents
+            waitUtils.waitForVisibilityOf(g2APage.getYourCartHeader(), Duration.ofSeconds(10));
+            Assert.assertEquals("Your cart", g2APage.getCartHeader(), "Cart header does not match");
+            extentTest.log(Status.PASS, "Navigated to cart page.");
 
-        addToCartButton.click();
-        WebElement addToCartButtonOnTheDialog = firstProduct.findElement(By.xpath("//button[@data-test-id='primary-button']"));
-        addToCartButtonOnTheDialog.click();
+            String priceInCart = g2APage.getPriceElementInCart().getText();
+            String currencyInCart = g2APage.getCurrencyElementInCart().getText();
+            extentTest.log(Status.INFO, "Price in cart: " + priceInCart + " " + currencyInCart);
 
-        WebElement yourCartHeader = firstProduct.findElement(By.xpath("//h1"));
-        waitUtils.waitForVisibilityOf(yourCartHeader, Duration.ofSeconds(10));
-        Assert.assertEquals("Your cart", yourCartHeader.getText());
+            Assert.assertEquals(price, priceInCart, "Prices do not match in cart");
+            Assert.assertEquals(currency, currencyInCart, "Currencies do not match in cart");
+            extentTest.log(Status.PASS, "Price and currency match in cart.");
 
-        WebElement priceElementInCart = firstProduct.findElement(By.xpath("//div[contains(@class, 'PriceDetails')]/span[@data-locator = 'zth-price']"));
-        String priceInCart = priceElementInCart.getText();
-        WebElement currencyElementInCart = priceElementOnProductPageWithoutDiscount.findElement(By.xpath("/span"));
-        String currencyInCart = currencyElementInCart.getText();
+            String priceInCartTotal = g2APage.getPriceElementInCartTotal().getText();
+            String currencyInCartTotal = g2APage.getCurrencyElementInCartTotal().getText();
+            extentTest.log(Status.INFO, "Total price in cart: " + priceInCartTotal + " " + currencyInCartTotal);
 
-        Assert.assertEquals(price, priceInCart);
-        Assert.assertEquals(currency, currencyInCart);
-
-        WebElement priceElementInCartTotal = firstProduct.findElement(By.xpath("//span[contains(text(), 'Total price')]/following-sibling::span[@data-locator= 'zth-price']"));
-        String priceInCartTotal = priceElementInCartTotal.getText();
-        WebElement currencyElementInCartTotal = priceElementOnProductPageWithoutDiscount.findElement(By.xpath("/span"));
-        String currencyInCartTotal = currencyElementInCartTotal.getText();
-
-        Assert.assertEquals(price, priceInCartTotal);
-        Assert.assertEquals(currency, currencyInCartTotal);
-
-//
-//        // Capture the product price from the product details page
-//        WebElement priceElement = driver.findElement(By.cssSelector(".Card-sc-1p6lqxk-0"));
-//        String productPriceText = priceElement.getText().replaceAll("[^\\d.,]", "");
-//        double productPrice = Double.parseDouble(productPriceText.replace(',', '.'));
-//
-////        extentTest.log(Status.INFO, "Product price on the product page: " + productPrice);
-//
-//        // Add the product to the cart
-//        WebElement addToCartButton = driver.findElement(By.cssSelector(".jsx-2515979734"));
-//        addToCartButton.click();
-//
-//        // Navigate to the cart
-//        WebElement cartButton = driver.findElement(By.cssSelector("a[href='/cart']"));
-//        cartButton.click();
-//
-//        // Capture the product price from the cart
-//        WebElement cartPriceElement = driver.findElement(By.cssSelector(".cart-summary-prices__total__amount"));
-//        String cartPriceText = cartPriceElement.getText().replaceAll("[^\\d.,]", "");
-//        double cartPrice = Double.parseDouble(cartPriceText.replace(',', '.'));
-//
-////        extentTest.log(Status.INFO, "Product price in the cart: " + cartPrice);
-//
-//        // Assert that the price on the product page matches the price in the cart
-//        Assert.assertEquals(cartPrice, productPrice, "The price in the cart does not match the product page price!");
-
-//        extentTest.log(Status.PASS, "Price verified successfully!");
+            Assert.assertEquals(price, priceInCartTotal, "Total prices do not match in cart");
+            Assert.assertEquals(currency, currencyInCartTotal, "Total currencies do not match in cart");
+            extentTest.log(Status.PASS, "Total price and currency match in cart.");
+        } catch (Exception e) {
+            extentTest.log(Status.FAIL, "Test failed: " + e.getMessage());
+            String screenshotPath = screenshotUtil.takeScreenshot(productName);
+            extentTest.addScreenCaptureFromPath(screenshotPath);
+            Assert.fail("Test failed with exception: " + e.getMessage());
+        }
     }
 }
